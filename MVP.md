@@ -1,93 +1,44 @@
-This is an ambitious and interesting project! Let me break down the key components you'll need to tackle, starting with your immediate MVP needs and then addressing the longer-term stablecoin goals.
+## SplitDo MVP: Direct SOL/USDC Transfer Model
 
-## Immediate MVP: Fiat On-Ramp with Stripe
+### How It Works:
+1. **User pays $10 via Stripe** 
+2. **Stripe webhook triggers** → confirms successful payment
+3. **SplitDo server** sends $9.99 worth of SOL (or USDC) from your **reserve wallet** directly to user's Solana pubkey
+4. **You keep $0.01** as processing fee
 
-### Technical Implementation
-For your $10 → $9.99 on-ramp, you'll need:
-
-1. **Stripe Integration**:
-   - Use Stripe's Payment Intents API for the $10 charge
-   - Implement webhooks to handle successful payments
-   - Store user's Solana pubkey associated with payment
-
-2. **Token System for MVP**:
-   - Create a simple SPL token on Solana to represent USD value
-   - Mint 9.99 tokens to user's wallet after successful Stripe payment
-   - This can be a simple 1:1 USD-pegged token for now
-
-3. **Wallet Infrastructure**:
-   - Non-custodial wallet means users control private keys
-   - You'll need to handle token minting to their pubkey
-   - Implement fee deduction mechanism (0.01 tokens) on transactions
-
-### Sample Architecture:
+### Technical Flow:
 ```
-User pays $10 via Stripe → Webhook confirms payment → Mint 9.99 SplitDo tokens → Send to user's Solana wallet
+User Payment ($10) → Stripe → Webhook → Server → Transfer $9.99 SOL/USDC → User's Wallet
+                                           ↓
+                                    Keep $0.01 fee
 ```
 
-## Regulatory Considerations (Critical!)
-**This is extremely important**: Your fiat on-ramp likely requires money transmission licenses in most jurisdictions. You're essentially:
-- Taking fiat currency
-- Issuing digital tokens
-- Facilitating transfers
+### What We Need:
 
-Consider:
-- Consulting with a fintech lawyer immediately
-- Looking into partnerships with licensed money transmitters
-- Exploring white-label solutions (like Circle, Wyre, or MoonPay)
+**1. SplitDo Reserve Wallet:**
+- Hot wallet stored on your server (with private key)
+- Pre-funded with SOL or USDC (the wallet gotta be pre-funded)
+- Used to send funds to users after successful payments
 
-## Long-term: Creating Your Stablecoin
+**2. Stripe Integration:**
+- Payment Intent for $10 charge
+- Webhook endpoint to catch `payment_intent.succeeded`
+- Link Stripe customer to Solana pubkey
 
-### Stablecoin Options:
-1. **Fiat-Collateralized** (easiest to start):
-   - Back each token 1:1 with USD in bank accounts
-   - Requires regular audits
-   - Examples: USDC, USDT
+**3. Solana Transaction Logic:**
+- Calculate $9.99 worth of SOL (using current SOL/USD price)
+- OR use USDC directly (simpler - 1:1 with USD)
+- Send from reserve wallet to user's pubkey
+- Log transaction for accounting
 
-2. **Algorithmic** (most complex):
-   - Use smart contracts to maintain peg
-   - Higher risk but more decentralized
+### Key Benefits of This Approach:
+- **No token creation** - using existing Solana ecosystem
+- **Simple accounting** - direct USD → SOL/USDC conversion  
+- **Immediate liquidity** - users get real SOL/USDC they can use anywhere
+- **Integration ready** - works with RedotPay, Kast, any Solana wallet
 
-### Technical Implementation:
-```solana
-// Basic SPL token with mint authority
-// Add burning/minting mechanisms
-// Implement oracle price feeds
-// Add collateral management
-```
-
-## Getting Listed on CEXs
-
-### Requirements for Exchange Listing:
-1. **Legal Compliance**:
-   - Securities law compliance
-   - KYC/AML procedures
-   - Regulatory clarity
-
-2. **Technical Requirements**:
-   - Sufficient liquidity
-   - Market makers
-   - Technical documentation
-   - Security audits
-
-3. **Business Requirements**:
-   - Proven use case and adoption
-   - Strong team and backing
-   - Community support
-
-### Strategy:
-- Start with DEXs (Jupiter, Raydium on Solana)
-- Build liquidity and volume
-- Approach smaller CEXs first
-- Eventually target major exchanges
-
-## Immediate Next Steps
-
-1. **Legal First**: Get proper legal counsel for money transmission
-2. **Simple MVP**: Create basic SPL token for internal accounting
-3. **Stripe Integration**: Build the payment flow
-4. **Partner Exploration**: Consider partnering with existing licensed providers
-
-Would you like me to dive deeper into any of these areas? The regulatory piece is particularly crucial to get right from the start, as operating without proper licenses can have serious consequences.
-
-Also, have you considered how you'll handle the technical integration with RedotPay and Kast? The interoperability aspect could be a key differentiator.
+### Settlement Flow:
+When users want to settle bills:
+- They send SOL/USDC **from** their wallet **to** any other Solana pubkey
+- You deduct $0.01 worth of SOL/USDC as fee during the transaction
+- Settlement goes to recipient's pubkey (not back to SplitDo wallet)
